@@ -4,9 +4,14 @@ import logging
 
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 from oci_image import OCIImageResource, OCIImageResourceError
+from serialized_data_interface import (
+    NoCompatibleVersions,
+    NoVersionsListed,
+    get_interfaces,
+)
 
 
 class Operator(CharmBase):
@@ -22,6 +27,15 @@ class Operator(CharmBase):
 
         self.image = OCIImageResource(self, "oci-image")
 
+        try:
+            self.interfaces = get_interfaces(self)
+        except NoVersionsListed as err:
+            self.model.unit.status = WaitingStatus(str(err))
+            return
+        except NoCompatibleVersions as err:
+            self.model.unit.status = BlockedStatus(str(err))
+            return
+
         self.framework.observe(self.on.install, self.set_pod_spec)
         self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
         self.framework.observe(self.on.config_changed, self.set_pod_spec)
@@ -33,8 +47,8 @@ class Operator(CharmBase):
         if self.interfaces["grpc"]:
             self.interfaces["grpc"].send_data(
                 {
-                    "service-host": self.model.app.name,
-                    "service-port": self.model.config["port"],
+                    "service": self.model.app.name,
+                    "port": self.model.config["port"],
                 }
             )
 
@@ -74,12 +88,7 @@ class Operator(CharmBase):
                 {
                     "name": "config",
                     "mountPath": "/config",
-                    "files": [
-                        {
-                            "path": "config.proto",
-                            "content": config_proto,
-                        }
-                    ],
+                    "files": [{"path": "config.proto", "content": config_proto}],
                 }
             ]
 

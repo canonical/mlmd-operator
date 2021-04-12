@@ -5,8 +5,8 @@ on:
   - pull_request
 
 jobs:
-  check-formatting:
-    name: Check Formatting
+  lint:
+    name: Lint Check
     runs-on: ubuntu-latest
 
     steps:
@@ -14,18 +14,27 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install dependencies
-      run: |
-        sudo apt-get install python3-setuptools
-        sudo pip3 install black flake8
+      run: sudo apt install python3-pip tox
 
-    - name: Check black
-      run: black --check .
+    - name: Lint code
+      run: tox -e lint
 
-    - name: Check flake8
-      run: flake8
+  unit:
+    name: Unit Test
+    runs-on: ubuntu-latest
 
-  test:
-    name: Test
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: sudo apt install python3-pip tox
+
+    - name: Run unit tests
+      run: tox -e unit
+
+  deploy:
+    name: Deploy Test
     runs-on: ubuntu-latest
 
     steps:
@@ -39,6 +48,7 @@ jobs:
     - name: Install dependencies
       run: |
         set -eux
+        sudo apt install python3-pip
         sudo pip3 install charmcraft
         sudo snap install juju --classic
         sudo snap install juju-wait --classic
@@ -54,6 +64,7 @@ jobs:
       run: |
         set -eux
         charmcraft build
+
         juju deploy ./*.charm \
           --resource oci-image=$(yq eval '.resources.oci-image.upstream-source' metadata.yaml)
         juju wait -wvt 300
@@ -77,6 +88,10 @@ jobs:
       run: juju status
       if: failure()
 
+    - name: Juju debug log
+      run: juju debug-log --replay --no-tail
+      if: failure()
+
     - name: Get workload logs
       run: kubectl logs --tail 100 -nci-test -ljuju-app
       if: failure()
@@ -84,4 +99,3 @@ jobs:
     - name: Get operator logs
       run: kubectl logs --tail 100 -nci-test -ljuju-operator
       if: failure()
-
