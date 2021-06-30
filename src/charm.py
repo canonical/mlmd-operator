@@ -135,6 +135,28 @@ class Operator(CharmBase):
                     }
                 ],
             },
+            k8s_resources={
+                "kubernetesResources": {
+                    "services": [
+                        {
+                            "name": "metadata-grpc-service",
+                            "spec": {
+                                "selector": {
+                                    "app.kubernetes.io/name": self.model.app.name
+                                },
+                                "ports": [
+                                    {
+                                        "name": "grpc-api",
+                                        "port": int(config["port"]),
+                                        "protocol": "TCP",
+                                        "targetPort": int(config["port"]),
+                                    },
+                                ],
+                            },
+                        }
+                    ]
+                }
+            },
         )
         self.model.unit.status = ActiveStatus()
 
