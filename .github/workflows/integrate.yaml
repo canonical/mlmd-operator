@@ -48,8 +48,8 @@ jobs:
     - name: Install dependencies
       run: |
         set -eux
-        sudo apt install python3-pip
-        sudo pip3 install charmcraft
+        sudo apt install python3-pip tox
+        sudo snap install charmcraft
         sudo snap install juju --classic
         sudo snap install juju-wait --classic
         sudo snap install yq
@@ -63,7 +63,7 @@ jobs:
     - name: Deploy charm
       run: |
         set -eux
-        charmcraft build
+        tox -e build
 
         juju deploy ./*.charm \
           --resource oci-image=$(yq eval '.resources.oci-image.upstream-source' metadata.yaml)

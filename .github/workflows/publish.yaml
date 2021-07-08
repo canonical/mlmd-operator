@@ -18,7 +18,7 @@ jobs:
       run: |
         set -eux
         sudo snap install charm --classic
-        sudo pip3 install charmcraft
+        sudo snap install charmcraft
         sudo snap install yq
 
     - name: Publish charm
@@ -31,7 +31,7 @@ jobs:
         CS_URL="cs:~kubeflow-charmers/mlmd"
 
         IMAGE=$(yq eval '.resources.oci-image.upstream-source' metadata.yaml)
-        charmcraft build
+        tox -e build
         docker pull $IMAGE
         charm push ./*.charm $CS_URL --resource oci-image=$IMAGE
 
