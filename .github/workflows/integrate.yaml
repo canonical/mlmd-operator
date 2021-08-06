@@ -49,10 +49,15 @@ jobs:
       run: |
         set -eux
         sudo apt install python3-pip
-        sudo pip3 install charmcraft
+        sudo pip3 install charmcraft==1.0.0
         sudo snap install juju --classic
         sudo snap install juju-wait --classic
         sudo snap install yq
+
+    # Avoid race condition with storage taking a long time to initialize
+    - name: Wait for storage
+      run: |
+        sg microk8s -c 'microk8s kubectl rollout status deployment/hostpath-provisioner -n kube-system'
 
     - name: Bootstrap Juju
       run: |
