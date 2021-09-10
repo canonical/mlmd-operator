@@ -1,106 +1,79 @@
 name: CI
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   lint:
-    name: Lint Check
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
     - name: Check out code
       uses: actions/checkout@v2
-
     - name: Install dependencies
-      run: sudo apt install python3-pip tox
-
+      run: |
+        sudo apt update
+        sudo apt install tox
     - name: Lint code
-      run: tox -e lint
+      run: tox -vve lint
 
   unit:
-    name: Unit Test
+    name: Unit Tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          pip install tox
+      - name: Run unit tests
+        run: tox -vve unit
 
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
     steps:
     - name: Check out code
       uses: actions/checkout@v2
-
-    - name: Install dependencies
-      run: sudo apt install python3-pip tox
-
-    - name: Run unit tests
-      run: tox -e unit
-
-  deploy:
-    name: Deploy Test
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check out repo
-      uses: actions/checkout@v2
-
-    - uses: balchua/microk8s-actions@v0.2.2
+    - name: Setup operator environment
+      uses: charmed-kubernetes/actions-operator@main
       with:
-        addons: '["dns", "storage", "rbac"]'
+        provider: microk8s
 
-    - name: Install dependencies
+    # TODO: Remove once the actions-operator does this automatically
+    - name: Configure kubectl
       run: |
-        set -eux
-        sudo apt install python3-pip
-        sudo pip3 install charmcraft==1.0.0
-        sudo snap install juju --classic
-        sudo snap install juju-wait --classic
-        sudo snap install yq
+        sg microk8s -c "microk8s config > ~/.kube/config"
 
-    # Avoid race condition with storage taking a long time to initialize
-    - name: Wait for storage
+    - name: Test
       run: |
-        sg microk8s -c 'microk8s kubectl rollout status deployment/hostpath-provisioner -n kube-system'
+        sg microk8s -c "tox -vve integration -- --model testing"
 
-    - name: Bootstrap Juju
-      run: |
-        set -eux
-        sg microk8s -c 'juju bootstrap microk8s uk8s'
-        juju add-model ci-test
-
-    - name: Deploy charm
-      run: |
-        set -eux
-        charmcraft build
-
-        juju deploy ./*.charm \
-          --resource oci-image=$(yq eval '.resources.oci-image.upstream-source' metadata.yaml)
-        juju wait -wvt 300
-
-    - name: Test charm
-      run: |
-        set -eux
-        wget https://raw.githubusercontent.com/google/ml-metadata/master/ml_metadata/proto/metadata_store.proto
-        wget https://raw.githubusercontent.com/google/ml-metadata/master/ml_metadata/proto/metadata_store_service.proto
-        wget -O- https://github.com/fullstorydev/grpcurl/releases/download/v1.8.0/grpcurl_1.8.0_linux_x86_64.tar.gz | tar -xzv
-        mkdir -p ml_metadata/proto/
-        mv metadata_store.proto ml_metadata/proto/
-        SERVICE=$(kubectl get services/mlmd -nci-test -oyaml | yq e .spec.clusterIP -)
-        ./grpcurl -v --proto=metadata_store_service.proto --plaintext $SERVICE:8080 ml_metadata.MetadataStoreService/GetArtifacts
-
+      # On failure, capture debugging resources
     - name: Get all
       run: kubectl get all -A
+      if: failure()
+
+    - name: Describe deployments
+      run: kubectl describe deployments -A
+      if: failure()
+
+    - name: Describe replicasets
+      run: kubectl describe replicasets -A
       if: failure()
 
     - name: Get juju status
       run: juju status
       if: failure()
 
-    - name: Juju debug log
-      run: juju debug-log --replay --no-tail
+    - name: Get application logs
+      run: kubectl logs -n testing --tail 1000 -ljuju-app=mlmd
       if: failure()
 
-    - name: Get workload logs
-      run: kubectl logs --tail 100 -nci-test -ljuju-app
-      if: failure()
-
-    - name: Get operator logs
-      run: kubectl logs --tail 100 -nci-test -ljuju-operator
+    - name: Get application operator logs
+      run: kubectl logs -n testing --tail 1000 -ljuju-operator=mlmd
       if: failure()
