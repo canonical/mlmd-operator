@@ -29,8 +29,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Install dependencies
-        run: |
-          pip install tox
+        run: pip install tox
       - name: Run unit tests
         run: tox -vve unit
 
@@ -47,12 +46,10 @@ jobs:
 
     # TODO: Remove once the actions-operator does this automatically
     - name: Configure kubectl
-      run: |
-        sg microk8s -c "microk8s config > ~/.kube/config"
+      run: sg microk8s -c "microk8s config > ~/.kube/config"
 
     - name: Test
-      run: |
-        sg microk8s -c "tox -vve integration -- --model testing"
+      run: sg microk8s -c "tox -vve integration -- --model testing"
 
       # On failure, capture debugging resources
     - name: Get all
