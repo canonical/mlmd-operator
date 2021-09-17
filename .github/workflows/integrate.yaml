@@ -72,7 +72,7 @@ jobs:
       if: failure()
 
     - name: Get application logs
-      run: kubectl logs -n testing --tail 1000 -ljuju-app=mlmd
+      run: kubectl logs -n testing --tail 1000 -lapp.kubernetes.io/name=mlmd
       if: failure()
 
     - name: Get application operator logs
