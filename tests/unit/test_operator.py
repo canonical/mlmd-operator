@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from ops.testing import Harness
 
@@ -107,4 +109,44 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual(
             self.harness.charm.unit.status, WaitingStatus("Waiting for pebble")
+        )
+
+    @patch("charm.KubernetesServicePatch", MagicMock())
+    @patch("ops.model.Container.push", MagicMock())
+    def test_config_port(self):
+        self.harness.set_leader(True)
+        self.harness.begin_with_initial_hooks()
+
+        self.harness.update_config({"port": 1000})
+        plan = self.harness.get_container_pebble_plan("mlmd").to_dict()
+        self.assertIn("--grpc_port=1000", plan["services"]["mlmd"]["command"])
+
+    @patch("charm.KubernetesServicePatch", MagicMock())
+    @patch("ops.model.Container.push", MagicMock())
+    def test_kubernetes_service(self):
+        self.harness.set_leader(True)
+        self.harness.begin()
+        self.harness.update_config({"port": 5000})
+        self.harness.charm.service_patcher._service_object.assert_called_once_with(
+            [("grpc-api", 5000)]
+        )
+        self.harness.charm.service_patcher._patch.assert_called_once_with(None)
+
+    @patch("charm.KubernetesServicePatch", MagicMock())
+    @patch("ops.model.Container.push", MagicMock())
+    def test_grpc_interface(self):
+        self.harness.set_leader(True)
+        self.harness.begin_with_initial_hooks()
+
+        self.harness.update_config({"port": 5000})
+        self.harness.charm.interfaces["grpc"] = MagicMock()
+
+        self.harness.add_relation("grpc", "my-app")
+        MockRelation = namedtuple("Relation", ["name", "id"])
+        self.harness.charm.on["grpc"].relation_changed.emit(MockRelation("grpc", 0))
+        self.harness.charm.interfaces["grpc"].send_data.assert_called_once_with(
+            {
+                "service": self.harness.model.app.name,
+                "port": 5000,
+            }
         )
