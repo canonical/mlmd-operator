@@ -8,4 +8,15 @@ wget -O- https://github.com/fullstorydev/grpcurl/releases/download/v1.8.0/grpcur
 mkdir -p ml_metadata/proto/
 mv metadata_store.proto ml_metadata/proto/
 SERVICE=$(kubectl get services/mlmd -n $MODEL -oyaml | yq e .spec.clusterIP -)
-./grpcurl -v --proto=metadata_store_service.proto --plaintext $SERVICE:8080 ml_metadata.MetadataStoreService/GetArtifacts
+
+timeout 1m bash -x -c "
+  while ! ./grpcurl -v --proto=metadata_store_service.proto --plaintext $SERVICE:8080 ml_metadata.MetadataStoreService/GetArtifacts; do
+    echo Failed to grpcurl, retrying after 5 seconds
+    sleep 5
+  done
+"
+
+if [[ $? == 124 ]]; then
+  echo "Fail: Timed out trying to access MLMD service with grpcurl"
+  exit 1
+fi
