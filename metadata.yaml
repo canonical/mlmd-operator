@@ -1,17 +1,21 @@
 name: mlmd
 display-name: ML Metadata
-summary: Record and retrieve metadata associated with ML workflows 
+summary: Record and retrieve metadata associated with ML workflows
 description: https://www.tensorflow.org/tfx/guide/mlmd
 maintainers:
   - "Dominik Fleischmann <dominik.fleischmann@canonical.com>"
   - "Kenneth Koski <kenneth.koski@canonical.com>"
 tags: [machine-learning, metadata, tensorflow]
-series: [kubernetes]
+containers:
+  mlmd:
+    resource: oci-image
+    mounts:
+      - storage: mlmd-data
+        location: /data
 resources:
   oci-image:
     type: oci-image
     description: Backing OCI image
-    auto-fetch: true
     upstream-source: gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0
 provides:
   grpc:
@@ -26,4 +30,3 @@ storage:
     type: filesystem
     location: /data
     minimum-size: 10G
-min-juju-version: 2.8.6
