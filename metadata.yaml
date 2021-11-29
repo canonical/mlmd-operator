@@ -1,3 +1,6 @@
+# Copyright 2021 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 name: mlmd
 display-name: ML Metadata
 summary: Record and retrieve metadata associated with ML workflows 
