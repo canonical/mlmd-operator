@@ -2,7 +2,6 @@
 # See LICENSE file for licensing details.
 
 name: mlmd
-display-name: ML Metadata
 summary: Record and retrieve metadata associated with ML workflows 
 description: https://www.tensorflow.org/tfx/guide/mlmd
 maintainers:
