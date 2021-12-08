@@ -181,12 +181,12 @@ class Operator(CharmBase):
 class CheckFailed(Exception):
     """ Raise this exception if one of the checks in main fails. """
 
-    def __init__(self, msg, status_type=None):
+    def __init__(self, msg: str, status_type=None):
         super().__init__()
 
-        self.msg = msg
+        self.msg = str(msg)
         self.status_type = status_type
-        self.status = status_type(msg)
+        self.status = status_type(self.msg)
 
 
 if __name__ == "__main__":
