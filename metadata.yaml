@@ -4,6 +4,7 @@ name: mlmd
 summary: Record and retrieve metadata associated with ML workflows
 description: https://www.tensorflow.org/tfx/guide/mlmd
 series: [kubernetes]
+min-juju-version: "2.9.0"
 resources:
   oci-image:
     type: oci-image
