@@ -179,7 +179,7 @@ class Operator(CharmBase):
 
 
 class CheckFailed(Exception):
-    """ Raise this exception if one of the checks in main fails. """
+    """Raise this exception if one of the checks in main fails."""
 
     def __init__(self, msg: str, status_type=None):
         super().__init__()
