@@ -15,6 +15,7 @@ METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.mark.abort_on_fail
+@pytest.mark.asyncio
 async def test_build_and_deploy(ops_test: OpsTest):
     built_charm_path = await ops_test.build_charm(".")
     log.info(f"Built charm {built_charm_path}")
