@@ -1,3 +1,5 @@
+.coverage
 *.charm
 build/
 __pycache__/
+.tox

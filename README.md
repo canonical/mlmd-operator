@@ -1,4 +1,4 @@
-## ML Metdata Operator
+## ML Metadata Operator
 
 ### Overview
 This charm encompasses the Kubernetes Python operator for ML Metadata (see

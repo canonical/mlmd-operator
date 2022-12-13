@@ -4,16 +4,11 @@
 
 import logging
 
+from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-
-from oci_image import OCIImageResource, OCIImageResourceError
-from serialized_data_interface import (
-    NoCompatibleVersions,
-    NoVersionsListed,
-    get_interfaces,
-)
+from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
 
 
 class Operator(CharmBase):
@@ -70,9 +65,7 @@ class Operator(CharmBase):
             volumes = []
         except (IndexError, KeyError):
             db_args = ["--metadata_store_server_config_file=/config/config.proto"]
-            config_proto = (
-                'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
-            )
+            config_proto = 'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
             volumes = [
                 {
                     "name": "config",
@@ -128,9 +121,7 @@ class Operator(CharmBase):
                         {
                             "name": "metadata-grpc-service",
                             "spec": {
-                                "selector": {
-                                    "app.kubernetes.io/name": self.model.app.name
-                                },
+                                "selector": {"app.kubernetes.io/name": self.model.app.name},
                                 "ports": [
                                     {
                                         "name": "grpc-api",
