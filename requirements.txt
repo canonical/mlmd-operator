@@ -4,9 +4,9 @@
 #
 #    pip-compile --resolver=backtracking requirements.in
 #
-attrs==22.2.0
+attrs==23.1.0
     # via jsonschema
-certifi==2022.12.7
+certifi==2023.5.7
     # via requests
 charset-normalizer==3.1.0
     # via requests
@@ -18,7 +18,7 @@ jsonschema==4.17.3
     # via serialized-data-interface
 oci-image==1.0.0
     # via -r requirements.in
-ops==2.1.1
+ops==2.3.0
     # via
     #   -r requirements.in
     #   serialized-data-interface
@@ -30,13 +30,13 @@ pyyaml==6.0
     # via
     #   ops
     #   serialized-data-interface
-requests==2.28.2
+requests==2.31.0
     # via serialized-data-interface
 serialized-data-interface==0.6.0
     # via -r requirements.in
-urllib3==1.26.15
+urllib3==2.0.3
     # via requests
-websocket-client==1.5.1
+websocket-client==1.5.3
     # via ops
 zipp==3.15.0
     # via importlib-resources
