@@ -29,9 +29,7 @@ class Operator(CharmBase):
             self.framework.observe(event, self.main)
 
     def main(self, event):
-
         try:
-
             self._check_leader()
 
             interfaces = self._get_interfaces()
