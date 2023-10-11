@@ -140,7 +140,7 @@ class Operator(CharmBase):
         if interfaces["grpc"]:
             interfaces["grpc"].send_data(
                 {
-                    "service": self.model.app.name,
+                    "service": "metadata-grpc-service",
                     "port": self.model.config["port"],
                 }
             )
