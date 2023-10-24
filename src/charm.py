@@ -4,6 +4,8 @@
 
 import logging
 
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
+from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
 from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase
 from ops.main import main
@@ -23,10 +25,20 @@ class Operator(CharmBase):
             self.on.config_changed,
             self.on.install,
             self.on.upgrade_charm,
-            self.on["mysql"].relation_changed,
+            self.on["relational-db"].relation_changed,
+            self.on["relational-db"].relation_joined,
+            self.on["relational-db"].relation_departed,
+            self.on["relational-db"].relation_broken,
             self.on["grpc"].relation_changed,
         ]:
             self.framework.observe(event, self.main)
+
+        # Name from upstream pipeline-install-config configMap
+        self._database_name = "metadb"
+
+        self.database = DatabaseRequires(
+            self, relation_name="relational-db", database_name=self._database_name
+        )
 
     def main(self, event):
         try:
@@ -36,48 +48,27 @@ class Operator(CharmBase):
 
             image_details = self._check_image_details()
 
-        except CheckFailed as check_failed:
+            self._check_db_relation()
+
+            db_data = self._get_relational_db_data(interfaces)
+
+        except ErrorWithStatus as check_failed:
             self.model.unit.status = check_failed.status
             return
 
         self._send_info(interfaces)
 
-        mysql = self.model.relations["mysql"]
-
-        if len(mysql) > 1:
-            self.model.unit.status = BlockedStatus("Too many mysql relations")
-            return
-
-        try:
-            mysql = mysql[0]
-            unit = list(mysql.units)[0]
-            mysql = mysql.data[unit]
-            mysql["database"]
-            db_args = [
-                f"--mysql_config_database={mysql['database']}",
-                f"--mysql_config_host={mysql['host']}",
-                f"--mysql_config_port={mysql['port']}",
-                f"--mysql_config_user={mysql['user']}",
-                f"--mysql_config_password={mysql['password']}",
-            ]
-            volumes = []
-        except (IndexError, KeyError):
-            db_args = ["--metadata_store_server_config_file=/config/config.proto"]
-            config_proto = 'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
-            volumes = [
-                {
-                    "name": "config",
-                    "mountPath": "/config",
-                    "files": [{"path": "config.proto", "content": config_proto}],
-                }
-            ]
-
         config = self.model.config
-
-        args = db_args + [
+        args = [
             f"--grpc_port={config['port']}",
+            f"--mysql_config_database={db_data['name']}",
+            f"--mysql_config_host={db_data['host']}",
+            f"--mysql_config_port={db_data['port']}",
+            f"--mysql_config_user={db_data['username']}",
+            f"--mysql_config_password={db_data['password']}",
             "--enable_database_upgrade=true",
         ]
+        volumes = []
 
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
         self.model.pod.set_spec(
@@ -148,34 +139,71 @@ class Operator(CharmBase):
     def _check_leader(self):
         if not self.unit.is_leader():
             self.log.info("Not a leader, skipping set_pod_spec")
-            raise CheckFailed("", ActiveStatus)
+            raise ErrorWithStatus("", ActiveStatus)
 
     def _get_interfaces(self):
         try:
             interfaces = get_interfaces(self)
         except NoVersionsListed as err:
-            raise CheckFailed(err, WaitingStatus)
+            raise ErrorWithStatus(err, WaitingStatus)
         except NoCompatibleVersions as err:
-            raise CheckFailed(err, BlockedStatus)
+            raise ErrorWithStatus(err, BlockedStatus)
         return interfaces
 
     def _check_image_details(self):
         try:
             image_details = self.image.fetch()
         except OCIImageResourceError as e:
-            raise CheckFailed(f"{e.status.message}", e.status_type)
+            raise ErrorWithStatus(f"{e.status.message}", e.status_type)
         return image_details
 
+    def _check_db_relation(self):
+        """Retrieve relational-db relation
 
-class CheckFailed(Exception):
-    """Raise this exception if one of the checks in main fails."""
+        Returns relation, if it is established, and raises error otherwise.
+        """
+        relation = self.model.get_relation("relational-db")
 
-    def __init__(self, msg: str, status_type=None):
-        super().__init__()
+        if not relation:
+            self.log.warning("No relational-db relation was found")
+            raise ErrorWithStatus(
+                "Please add required database relation: relational-db", BlockedStatus
+            )
 
-        self.msg = str(msg)
-        self.status_type = status_type
-        self.status = status_type(self.msg)
+        return relation
+
+    def _get_relational_db_data(self, rel_id: int) -> dict:
+        """Check relational-db relation, retrieve and return data, if available."""
+        db_data = {}
+        relation_data = {}
+
+        relation_data = self.database.fetch_relation_data()
+
+        # Parse data in relation
+        # this also validates expected data by means of KeyError exception
+        for val in relation_data.values():
+            if not val:
+                continue
+            try:
+                db_data["name"] = val["database"]
+                db_data["password"] = val["password"]
+                db_data["username"] = val["username"]
+                host, port = val["endpoints"].split(":")
+                db_data["host"] = host
+                db_data["port"] = port
+            except KeyError as err:
+                self.log.error(f"Missing attribute {err} in relational-db relation data")
+                # incorrect/incomplete data can be found in relational-db relation which can be
+                # resolved: use WaitingStatus
+                raise ErrorWithStatus(
+                    "Incorrect/incomplete data found in relation relational-db. See logs",
+                    WaitingStatus,
+                )
+        if not db_data:
+            self.log.warning("Found empty relation data for relational-db relation.")
+            raise ErrorWithStatus("Waiting for relational-db data", WaitingStatus)
+
+        return db_data
 
 
 if __name__ == "__main__":
