@@ -2,7 +2,7 @@
 # See LICENSE file for licensing details.
 
 options:
-  port:
+  grpc-port:
     type: string
     default: '8080'
     description: GRPC port
