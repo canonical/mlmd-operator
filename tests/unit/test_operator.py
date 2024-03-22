@@ -1,7 +1,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from ops.model import ActiveStatus, WaitingStatus
@@ -14,6 +14,7 @@ MOCK_GRPC_DATA = {"service": "service-name", "port": "1234"}
 SERVICE_NAME = "mlmd"
 
 
+@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_not_leader(
     harness,
     mocked_lightkube_client,
@@ -25,6 +26,7 @@ def test_not_leader(
     )
 
 
+@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_grpc_relation_with_data(harness, mocked_lightkube_client):
     harness.set_leader(True)
     harness.begin()
@@ -34,11 +36,12 @@ def test_grpc_relation_with_data(harness, mocked_lightkube_client):
 
     # The GRPC port from the default config and the GRPC_SVC_NAME set in the charm code
     # are the expected values of this test case
-    expected = {"port": harness.model.config["grpc-port"], "name": GRPC_SVC_NAME}
+    expected = {"port": harness.model.config["port"], "name": GRPC_SVC_NAME}
     assert rel_data["port"] == expected["port"]
     assert rel_data["name"] == expected["name"]
 
 
+@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_kubernetes_component_created(harness, mocked_lightkube_client):
     """Test that Kubernetes component is created when we have leadership."""
     # Needed because the kubernetes component will only apply to k8s if we are the leader
@@ -59,6 +62,7 @@ def test_kubernetes_component_created(harness, mocked_lightkube_client):
     assert mocked_lightkube_client.apply.call_count == 1
 
 
+@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_pebble_service_container_running(harness, mocked_lightkube_client):
     """Test that the pebble service of the charm's mlmd-grpc-server container is running."""
     harness.set_leader(True)
@@ -76,6 +80,7 @@ def test_pebble_service_container_running(harness, mocked_lightkube_client):
     assert container.get_service(SERVICE_NAME).is_running()
 
 
+@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_install_before_pebble_service_container(harness, mocked_lightkube_client):
     """Test that charm waits when install event happens before pebble-service-container is ready."""
     harness.set_leader(True)

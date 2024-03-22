@@ -13,6 +13,8 @@ from charmed_kubeflow_chisme.components import (
 from charmed_kubeflow_chisme.components.kubernetes_component import KubernetesComponent
 from charmed_kubeflow_chisme.kubernetes import create_charm_default_labels
 from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
+from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from lightkube.models.core_v1 import ServicePort
 from lightkube.resources.core_v1 import Service
 from ops.charm import CharmBase
 from ops.main import main
@@ -35,9 +37,9 @@ class Operator(CharmBase):
         super().__init__(*args)
 
         # KubernetesServiceInfoProvider for broadcasting the GRPC service information
-        self._svc_port = self.config["grpc-port"]
+        self._svc_grpc_port = self.config["port"]
         self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
-            charm=self, relation_name=RELATION_NAME, name=GRPC_SVC_NAME, port=self._svc_port
+            charm=self, relation_name=RELATION_NAME, name=GRPC_SVC_NAME, port=self._svc_grpc_port
         )
 
         # Charm logic
@@ -63,7 +65,7 @@ class Operator(CharmBase):
                 context_callable=lambda: {
                     "app_name": self.app.name,
                     "namespace": self.model.name,
-                    "grpc_port": self._svc_port,
+                    "grpc_port": self._svc_grpc_port,
                 },
                 lightkube_client=lightkube.Client(),
             ),
@@ -76,7 +78,8 @@ class Operator(CharmBase):
                 name="mlmd-grpc-service",
                 container_name="mlmd-grpc-server",
                 service_name="mlmd",
-                grpc_port=self.config["grpc-port"],
+                grpc_port=self._svc_grpc_port,
+                metadata_store_server_config_file=SQLITE_CONFIG_PROTO_DESTINATION,
                 files_to_push=[
                     LazyContainerFileTemplate(
                         destination_path=SQLITE_CONFIG_PROTO_DESTINATION,
@@ -88,6 +91,9 @@ class Operator(CharmBase):
         )
 
         self.charm_reconciler.install_default_event_handlers()
+
+        grpc_port = ServicePort(int(self._svc_grpc_port), name="grpc-api")
+        self.service_patcher = KubernetesServicePatch(self, [grpc_port])
 
 
 if __name__ == "__main__":
