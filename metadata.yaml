@@ -28,9 +28,6 @@ provides:
           - port
     versions: [v1]
     __schema_source: https://raw.githubusercontent.com/canonical/operator-schemas/master/grpc.yaml
-requires:
-  mysql:
-    interface: mysql
 storage:
   mlmd-data:
     type: filesystem
