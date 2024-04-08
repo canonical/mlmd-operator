@@ -25,7 +25,7 @@ logger = logging.getLogger()
 
 GRPC_SVC_NAME = "metadata-grpc-service"
 K8S_RESOURCE_FILES = ["src/templates/ml-pipeline-service.yaml.j2"]
-RELATION_NAME = "k8s-svc-info"
+RELATION_NAME = "k8s-service-info"
 SQLITE_CONFIG_PROTO_DESTINATION = "/config/config.proto"
 SQLITE_CONFIG_PROTO = 'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
 
@@ -36,14 +36,9 @@ class Operator(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
-        # KubernetesServiceInfoProvider for broadcasting the GRPC service information
-        self._svc_grpc_port = self.config["port"]
-        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
-            charm=self, relation_name=RELATION_NAME, name=GRPC_SVC_NAME, port=self._svc_grpc_port
-        )
-
         # Charm logic
         self.charm_reconciler = CharmReconciler(self)
+        self._svc_grpc_port = self.config["port"]
 
         self.leadership_gate = self.charm_reconciler.add(
             component=LeadershipGateComponent(
@@ -91,9 +86,17 @@ class Operator(CharmBase):
         )
 
         self.charm_reconciler.install_default_event_handlers()
-
         grpc_port = ServicePort(int(self._svc_grpc_port), name="grpc-api")
         self.service_patcher = KubernetesServicePatch(self, [grpc_port])
+
+        # KubernetesServiceInfoProvider for broadcasting the GRPC service information
+        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
+            charm=self,
+            relation_name=RELATION_NAME,
+            name=GRPC_SVC_NAME,
+            port=self._svc_grpc_port,
+            refresh_event=self.on.config_changed,
+        )
 
 
 if __name__ == "__main__":

@@ -19,8 +19,11 @@ resources:
     auto-fetch: true
     upstream-source: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
 provides:
-  k8s-svc-info:
+  k8s-service-info:
     interface: k8s-service
+requires:
+  mysql:
+    interface: mysql
 storage:
   mlmd-data:
     type: filesystem

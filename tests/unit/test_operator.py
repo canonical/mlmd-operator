@@ -1,7 +1,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from ops.model import ActiveStatus, WaitingStatus
@@ -10,11 +10,9 @@ from ops.testing import Harness
 from charm import GRPC_SVC_NAME, RELATION_NAME, Operator
 
 CONTAINER_NAME = "mlmd-grpc-server"
-MOCK_GRPC_DATA = {"service": "service-name", "port": "1234"}
 SERVICE_NAME = "mlmd"
 
 
-@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_not_leader(
     harness,
     mocked_lightkube_client,
@@ -26,7 +24,6 @@ def test_not_leader(
     )
 
 
-@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_grpc_relation_with_data(harness, mocked_lightkube_client):
     harness.set_leader(True)
     harness.begin()
@@ -41,7 +38,32 @@ def test_grpc_relation_with_data(harness, mocked_lightkube_client):
     assert rel_data["name"] == expected["name"]
 
 
-@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
+@pytest.mark.skip("The base charm cannot handle the config change during tests.")
+def test_grpc_relation_with_data_when_data_changes(
+    harness, mocked_lightkube_client, requirer_charm_harness
+):
+    harness.set_leader(True)
+    harness.begin()
+
+    # Initialise a k8s-service requirer charm
+    harness.charm.leadership_gate.get_status = MagicMock(return_value=ActiveStatus())
+    harness.charm.kubernetes_resources.get_status = MagicMock(return_value=ActiveStatus())
+
+    # Add relation between the requirer charm and this charm (mlmd)
+    provider_rel_id = harness.add_relation(relation_name=RELATION_NAME, remote_app="other-app")
+    provider_rel_data = harness.get_relation_data(
+        relation_id=provider_rel_id, app_or_unit=harness.charm.app.name
+    )
+
+    # Change the port of the service and check the value changes
+    harness.update_config({"port": "9090"})
+    assert provider_rel_data["port"] == harness.model.config["port"]
+
+    # Change the name of the service and check the value changes
+    harness.charm.GRPC_SVC_NAME = "some-other-name"
+    assert provider_rel_data["name"] == "some-other-name"
+
+
 def test_kubernetes_component_created(harness, mocked_lightkube_client):
     """Test that Kubernetes component is created when we have leadership."""
     # Needed because the kubernetes component will only apply to k8s if we are the leader
@@ -62,7 +84,6 @@ def test_kubernetes_component_created(harness, mocked_lightkube_client):
     assert mocked_lightkube_client.apply.call_count == 1
 
 
-@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_pebble_service_container_running(harness, mocked_lightkube_client):
     """Test that the pebble service of the charm's mlmd-grpc-server container is running."""
     harness.set_leader(True)
@@ -80,7 +101,6 @@ def test_pebble_service_container_running(harness, mocked_lightkube_client):
     assert container.get_service(SERVICE_NAME).is_running()
 
 
-@patch("charm.KubernetesServicePatch", lambda *_, **__: None)
 def test_install_before_pebble_service_container(harness, mocked_lightkube_client):
     """Test that charm waits when install event happens before pebble-service-container is ready."""
     harness.set_leader(True)
@@ -96,9 +116,18 @@ def test_install_before_pebble_service_container(harness, mocked_lightkube_clien
     )
 
 
-@pytest.fixture
-def harness():
+@pytest.fixture()
+def harness(mocked_kubernetes_service_patch):
     return Harness(Operator)
+
+
+@pytest.fixture()
+def mocked_kubernetes_service_patch(mocker):
+    """Mocks the KubernetesServicePatch for the charm."""
+    mocked_kubernetes_service_patch = mocker.patch(
+        "charm.KubernetesServicePatch", lambda *_, **__: None
+    )
+    yield mocked_kubernetes_service_patch
 
 
 @pytest.fixture()
