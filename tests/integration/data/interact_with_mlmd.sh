@@ -2,6 +2,7 @@
 set -eux
 MODEL=$1
 echo "MODEL=$MODEL"
+rm -rf ml_metadata/proto
 wget https://raw.githubusercontent.com/google/ml-metadata/master/ml_metadata/proto/metadata_store.proto
 wget https://raw.githubusercontent.com/google/ml-metadata/master/ml_metadata/proto/metadata_store_service.proto
 wget -O- https://github.com/fullstorydev/grpcurl/releases/download/v1.8.0/grpcurl_1.8.0_linux_x86_64.tar.gz | tar -xzv

@@ -167,6 +167,8 @@ six==1.16.0
     #   python-dateutil
 stack-data==0.6.3
     # via ipython
+tenacity==8.2.3
+    # via -r requirements-integration.in
 tomli==2.0.1
     # via
     #   ipdb
