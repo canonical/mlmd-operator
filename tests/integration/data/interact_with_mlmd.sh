@@ -2,6 +2,8 @@
 set -eux
 MODEL=$1
 echo "MODEL=$MODEL"
+# Remove the ml_metadata/proto directory before executing the next lines so
+# when the script is retried, it doesn't exit because the directory already exists
 rm -rf ml_metadata/proto
 wget https://raw.githubusercontent.com/google/ml-metadata/master/ml_metadata/proto/metadata_store.proto
 wget https://raw.githubusercontent.com/google/ml-metadata/master/ml_metadata/proto/metadata_store_service.proto
