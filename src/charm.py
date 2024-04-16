@@ -1,181 +1,102 @@
 #!/usr/bin/env python3
-# Copyright 2021 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import logging
 
-from oci_image import OCIImageResource, OCIImageResourceError
+import lightkube
+from charmed_kubeflow_chisme.components import (
+    CharmReconciler,
+    LazyContainerFileTemplate,
+    LeadershipGateComponent,
+)
+from charmed_kubeflow_chisme.components.kubernetes_component import KubernetesComponent
+from charmed_kubeflow_chisme.kubernetes import create_charm_default_labels
+from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
+from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from lightkube.models.core_v1 import ServicePort
+from lightkube.resources.core_v1 import Service
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
+
+from components.pebble_components import MlmdPebbleService
+
+logger = logging.getLogger()
+
+GRPC_SVC_NAME = "metadata-grpc-service"
+K8S_RESOURCE_FILES = ["src/templates/ml-pipeline-service.yaml.j2"]
+RELATION_NAME = "k8s-service-info"
+SQLITE_CONFIG_PROTO_DESTINATION = "/config/config.proto"
+SQLITE_CONFIG_PROTO = 'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
 
 
 class Operator(CharmBase):
+    """Charm for the ML Metadata GRPC Server."""
+
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.log = logging.getLogger()
+        # Charm logic
+        self.charm_reconciler = CharmReconciler(self)
+        self._svc_grpc_port = self.config["port"]
 
-        self.image = OCIImageResource(self, "oci-image")
-
-        for event in [
-            self.on.config_changed,
-            self.on.install,
-            self.on.upgrade_charm,
-            self.on["mysql"].relation_changed,
-            self.on["grpc"].relation_changed,
-        ]:
-            self.framework.observe(event, self.main)
-
-    def main(self, event):
-        try:
-            self._check_leader()
-
-            interfaces = self._get_interfaces()
-
-            image_details = self._check_image_details()
-
-        except CheckFailed as check_failed:
-            self.model.unit.status = check_failed.status
-            return
-
-        self._send_info(interfaces)
-
-        mysql = self.model.relations["mysql"]
-
-        if len(mysql) > 1:
-            self.model.unit.status = BlockedStatus("Too many mysql relations")
-            return
-
-        try:
-            mysql = mysql[0]
-            unit = list(mysql.units)[0]
-            mysql = mysql.data[unit]
-            mysql["database"]
-            db_args = [
-                f"--mysql_config_database={mysql['database']}",
-                f"--mysql_config_host={mysql['host']}",
-                f"--mysql_config_port={mysql['port']}",
-                f"--mysql_config_user={mysql['user']}",
-                f"--mysql_config_password={mysql['password']}",
-            ]
-            volumes = []
-        except (IndexError, KeyError):
-            db_args = ["--metadata_store_server_config_file=/config/config.proto"]
-            config_proto = 'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
-            volumes = [
-                {
-                    "name": "config",
-                    "mountPath": "/config",
-                    "files": [{"path": "config.proto", "content": config_proto}],
-                }
-            ]
-
-        config = self.model.config
-
-        args = db_args + [
-            f"--grpc_port={config['port']}",
-            "--enable_database_upgrade=true",
-        ]
-
-        self.model.unit.status = MaintenanceStatus("Setting pod spec")
-        self.model.pod.set_spec(
-            {
-                "version": 3,
-                "containers": [
-                    {
-                        "name": "mlmd",
-                        "command": ["/bin/metadata_store_server"],
-                        "args": args,
-                        "imageDetails": image_details,
-                        "ports": [
-                            {
-                                "name": "grpc-api",
-                                "containerPort": int(self.model.config["port"]),
-                            },
-                        ],
-                        "volumeConfig": volumes,
-                        "kubernetes": {
-                            "livenessProbe": {
-                                "tcpSocket": {"port": "grpc-api"},
-                                "initialDelaySeconds": 3,
-                                "periodSeconds": 5,
-                                "timeoutSeconds": 2,
-                            },
-                            "readinessProbe": {
-                                "tcpSocket": {"port": "grpc-api"},
-                                "initialDelaySeconds": 3,
-                                "periodSeconds": 5,
-                                "timeoutSeconds": 2,
-                            },
-                        },
-                    }
-                ],
-            },
-            k8s_resources={
-                "kubernetesResources": {
-                    "services": [
-                        {
-                            "name": "metadata-grpc-service",
-                            "spec": {
-                                "selector": {"app.kubernetes.io/name": self.model.app.name},
-                                "ports": [
-                                    {
-                                        "name": "grpc-api",
-                                        "port": int(config["port"]),
-                                        "protocol": "TCP",
-                                        "targetPort": int(config["port"]),
-                                    },
-                                ],
-                            },
-                        }
-                    ]
-                }
-            },
+        self.leadership_gate = self.charm_reconciler.add(
+            component=LeadershipGateComponent(
+                charm=self,
+                name="leadership-gate",
+            ),
+            depends_on=[],
         )
-        self.model.unit.status = ActiveStatus()
 
-    def _send_info(self, interfaces):
-        if interfaces["grpc"]:
-            interfaces["grpc"].send_data(
-                {
-                    "service": "metadata-grpc-service",
-                    "port": self.model.config["port"],
-                }
-            )
+        self.kubernetes_resources = self.charm_reconciler.add(
+            component=KubernetesComponent(
+                charm=self,
+                name="kubernetes:svc",
+                resource_templates=K8S_RESOURCE_FILES,
+                krh_resource_types={Service},
+                krh_labels=create_charm_default_labels(
+                    self.app.name, self.model.name, scope="svc"
+                ),
+                context_callable=lambda: {
+                    "app_name": self.app.name,
+                    "namespace": self.model.name,
+                    "grpc_port": self._svc_grpc_port,
+                },
+                lightkube_client=lightkube.Client(),
+            ),
+            depends_on=[self.leadership_gate],
+        )
 
-    def _check_leader(self):
-        if not self.unit.is_leader():
-            self.log.info("Not a leader, skipping set_pod_spec")
-            raise CheckFailed("", ActiveStatus)
+        self.mlmd_container = self.charm_reconciler.add(
+            component=MlmdPebbleService(
+                charm=self,
+                name="mlmd-grpc-service",
+                container_name="mlmd-grpc-server",
+                service_name="mlmd",
+                grpc_port=self._svc_grpc_port,
+                metadata_store_server_config_file=SQLITE_CONFIG_PROTO_DESTINATION,
+                files_to_push=[
+                    LazyContainerFileTemplate(
+                        destination_path=SQLITE_CONFIG_PROTO_DESTINATION,
+                        source_template=SQLITE_CONFIG_PROTO,
+                    )
+                ],
+            ),
+            depends_on=[self.leadership_gate],
+        )
 
-    def _get_interfaces(self):
-        try:
-            interfaces = get_interfaces(self)
-        except NoVersionsListed as err:
-            raise CheckFailed(err, WaitingStatus)
-        except NoCompatibleVersions as err:
-            raise CheckFailed(err, BlockedStatus)
-        return interfaces
+        self.charm_reconciler.install_default_event_handlers()
+        grpc_port = ServicePort(int(self._svc_grpc_port), name="grpc-api")
+        self.service_patcher = KubernetesServicePatch(self, [grpc_port])
 
-    def _check_image_details(self):
-        try:
-            image_details = self.image.fetch()
-        except OCIImageResourceError as e:
-            raise CheckFailed(f"{e.status.message}", e.status_type)
-        return image_details
-
-
-class CheckFailed(Exception):
-    """Raise this exception if one of the checks in main fails."""
-
-    def __init__(self, msg: str, status_type=None):
-        super().__init__()
-
-        self.msg = str(msg)
-        self.status_type = status_type
-        self.status = status_type(self.msg)
+        # KubernetesServiceInfoProvider for broadcasting the GRPC service information
+        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
+            charm=self,
+            relation_name=RELATION_NAME,
+            name=GRPC_SVC_NAME,
+            port=self._svc_grpc_port,
+            refresh_event=self.on.config_changed,
+        )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,17 @@
+# From https://github.com/kubeflow/manifests/blob/v1.8-branch/apps/pipeline/upstream/base/metadata/base/metadata-grpc-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: metadata-grpc-service
+  namespace: {{ namespace }}
+spec:
+  ports:
+  - name: grpc-api
+    port: {{ grpc_port }}
+    protocol: TCP
+    targetPort: {{ grpc_port }}
+  selector:
+    # This selector ensures this Service identifies
+    # the mlmd Pod correctly as it will have
+    # the same tag
+    app.kubernetes.io/name: {{ app_name }}
