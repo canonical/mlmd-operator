@@ -12,6 +12,6 @@ spec:
     targetPort: {{ grpc_port }}
   selector:
     # This selector ensures this Service identifies
-    # the mlmd Pod correctly as ti will have
+    # the mlmd Pod correctly as it will have
     # the same tag
     app.kubernetes.io/name: {{ app_name }}

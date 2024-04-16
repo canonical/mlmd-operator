@@ -85,6 +85,7 @@ markupsafe==2.1.5
     #   jinja2
 ops==2.11.0
     # via
+    #   -r requirements-unit.in
     #   -r requirements.txt
     #   charmed-kubeflow-chisme
     #   serialized-data-interface
