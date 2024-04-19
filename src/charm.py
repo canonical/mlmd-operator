@@ -25,7 +25,7 @@ logger = logging.getLogger()
 
 GRPC_SVC_NAME = "metadata-grpc-service"
 K8S_RESOURCE_FILES = ["src/templates/ml-pipeline-service.yaml.j2"]
-RELATION_NAME = "k8s-service-info"
+RELATION_NAME = "grpc"
 SQLITE_CONFIG_PROTO_DESTINATION = "/config/config.proto"
 SQLITE_CONFIG_PROTO = 'connection_config: {sqlite: {filename_uri: "file:/data/mlmd.db"}}'
 

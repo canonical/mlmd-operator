@@ -19,7 +19,7 @@ resources:
     auto-fetch: true
     upstream-source: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
 provides:
-  k8s-service-info:
+  grpc:
     interface: k8s-service
 requires:
   mysql:
