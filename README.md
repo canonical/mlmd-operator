@@ -16,7 +16,7 @@ To install ML Metadata, run:
 
 For more information, see https://juju.is/docs
 
-## Upgrade guide
+## Upgrade
 
 This action can be performed with:
 
