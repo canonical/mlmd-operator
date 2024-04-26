@@ -26,7 +26,7 @@ juju refresh mlmd --channel <desired-channel>
 
 #### Upgrading from `mlmd<=1.14/stable`
 
-WARNING: to correctly perform this migration, you must [backup your data](https://discourse.charmhub.io/t/data-backups-and-restoration-for-ckf/13999#heading--backup-mlmd).
+> WARNING: to correctly perform this migration, you must [backup your data](https://discourse.charmhub.io/t/data-backups-and-restoration-for-ckf/13999#heading--backup-mlmd).
 
 1. Remove the relation with requirer charms (e.g. `envoy` and `kfp-metadata-writer`)
 
