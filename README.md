@@ -26,7 +26,7 @@ juju refresh mlmd --channel <desired-channel>
 
 #### Upgrading from `mlmd<=1.14/stable`
 
-> WARNING: to correctly perform this migration, you must [backup your data](https://discourse.charmhub.io/t/data-backups-and-restoration-for-ckf/13999#heading--backup-mlmd).
+> WARNING: to correctly perform this migration, you must [backup your data](https://discourse.charmhub.io/t/data-backups-and-restoration-for-ckf/13999#heading--backup-mlmd) first.
 
 1. Remove the relation with requirer charms (e.g. `envoy` and `kfp-metadata-writer`)
 
@@ -37,7 +37,7 @@ juju remove-relation kfp-metadata-writer mlmd
 
 2. Remove the `mlmd` application.
 
-> WARNING: this will wipe out the storagae attached to the `mlmd` charm, therefore, the database
+> WARNING: this will wipe out the storage attached to the `mlmd` charm, therefore, the database
 that this charm handles. It is important you perform a [data backup](https://discourse.charmhub.io/t/data-backups-and-restoration-for-ckf/13999#heading--backup-mlmd) before
 running this step.
 
@@ -55,7 +55,7 @@ juju deploy mlmd --channel <channel-greater-than-1.14/stable> --trust
 
 5. Relate to the requirer charms
 
-> WARNING: this relation is only supported for `envoy>2.0/stable` and `kfp-metadata-writer>2.0/stable`
+> NOTE: `mlmd>1.14/stable` can only be related to `envoy>2.0/stable` and `kfp-metadata-writer>2.0/stable`
 
 ```
 juju relate envoy mlmd
