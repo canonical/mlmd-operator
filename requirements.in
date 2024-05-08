@@ -1,6 +1,11 @@
-# Copyright 2021 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+# Pinning charmed-kubeflow-chisme will avoid pip-compile to resolve
+# conflicts by using an older version of this package.
+# Version >=0.3.0 contains the base charm code that's needed.
+charmed-kubeflow-chisme >= 0.3.0
+lightkube
 ops
-oci-image
-serialized-data-interface
+# This is a requirement from the k8s_service_info library
+pydantic

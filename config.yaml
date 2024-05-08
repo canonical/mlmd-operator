@@ -4,5 +4,5 @@
 options:
   port:
     type: string
-    default: '8080'
+    default: "8080"
     description: GRPC port
