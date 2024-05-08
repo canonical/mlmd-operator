@@ -118,7 +118,7 @@ jobs:
           tag-prefix: ${{ steps.parse-inputs.outputs.tag_prefix }}
           destructive-mode: false
 
-      # DEBUG: remove this after testing
+      # DEBUG: remove this after testing 
       - name: emit charmcraft cache directory contents
         run: |
           find $CRAFT_SHARED_CACHE | wc -l
