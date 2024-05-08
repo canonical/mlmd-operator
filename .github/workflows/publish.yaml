@@ -111,6 +111,7 @@ jobs:
           charm-path: ${{ matrix.charm-path }}
           channel: ${{ steps.parse-inputs.outputs.destination_channel }}
           tag-prefix: ${{ steps.parse-inputs.outputs.tag_prefix }}
+          destructive-mode: false
 
       # DEBUG: remove this after testing
       - name: emit charmcraft cache directory contents
