@@ -15,3 +15,49 @@ To install ML Metadata, run:
     juju deploy mlmd
 
 For more information, see https://juju.is/docs
+
+## Upgrade
+
+This action can be performed with:
+
+```
+juju refresh mlmd --channel <desired-channel>
+```
+
+#### Upgrading from `mlmd<=1.14/stable`
+
+> WARNING: to correctly perform this migration, you must [backup your data](https://charmed-kubeflow.io/docs/backup#heading--backup-mlmd-sqlite) first.
+
+1. Remove the relation with requirer charms (e.g. `envoy` and `kfp-metadata-writer`)
+
+```
+juju remove-relation envoy mlmd
+juju remove-relation kfp-metadata-writer mlmd
+```
+
+2. Remove the `mlmd` application.
+
+> WARNING: this will wipe out the storage attached to the `mlmd` charm, therefore, the database
+that this charm handles. It is important you perform a [data backup](https://charmed-kubeflow.io/docs/backup#heading--backup-mlmd-sqlite) before
+running this step.
+
+```
+juju remove-application mlmd --destroy-storage
+```
+
+3. Deploy `mlmd` from a newer channel
+
+```
+juju deploy mlmd --channel <channel-greater-than-1.14/stable> --trust
+```
+
+4. [Restore your data](https://charmed-kubeflow.io/docs/restore#heading--restore-mlmd-sqlite).
+
+5. Relate to the requirer charms
+
+> NOTE: `mlmd>1.14/stable` can only be related to `envoy>2.0/stable` and `kfp-metadata-writer>2.0/stable`
+
+```
+juju relate envoy mlmd
+juju relate kfp-metadata-writer mlmd
+```
