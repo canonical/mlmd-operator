@@ -1,10 +1,17 @@
-# Copyright 2021 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 name: mlmd
 summary: Record and retrieve metadata associated with ML workflows
-description: https://www.tensorflow.org/tfx/guide/mlmd
-series: [kubernetes]
-min-juju-version: "2.9.0"
+description: |
+  The ML Metadata operator provides means to store runtime information of a pipeline run in a
+  Metadata store. This information includes status of a task, availability of artifacts, custom properties, etc.
+  More info in https://github.com/google/ml-metadata/blob/master/g3doc/get_started.md
+containers:
+  mlmd-grpc-server:
+    resource: oci-image
+    mounts:
+      - storage: mlmd-data
+        location: /data
 resources:
   oci-image:
     type: oci-image
@@ -13,23 +20,8 @@ resources:
     upstream-source: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
 provides:
   grpc:
-    interface: grpc
-    schema:
-      v1:
-        provides:
-          type: object
-          properties:
-            service:
-              type: string
-            port:
-              type: string
-          required:
-          - service
-          - port
-    versions: [v1]
-    __schema_source: https://raw.githubusercontent.com/canonical/operator-schemas/master/grpc.yaml
+    interface: k8s-service
 storage:
   mlmd-data:
     type: filesystem
-    location: /data
     minimum-size: 10G
