@@ -21,9 +21,6 @@ resources:
 provides:
   grpc:
     interface: k8s-service
-requires:
-  mysql:
-    interface: mysql
 storage:
   mlmd-data:
     type: filesystem
