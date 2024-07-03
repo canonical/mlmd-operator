@@ -9,3 +9,5 @@ lightkube
 ops
 # This is a requirement from the k8s_service_info library
 pydantic
+# from loki_k8s.v1.loki_push_api.py
+cosl

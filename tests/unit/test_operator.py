@@ -1,7 +1,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from ops.model import ActiveStatus, WaitingStatus
@@ -11,6 +11,13 @@ from charm import GRPC_SVC_NAME, RELATION_NAME, Operator
 
 CONTAINER_NAME = "mlmd-grpc-server"
 SERVICE_NAME = "mlmd"
+
+
+def test_log_forwarding(harness, mocked_lightkube_client):
+    """Test LogForwarder initialization."""
+    with patch("charm.LogForwarder") as mock_logging:
+        harness.begin()
+        mock_logging.assert_called_once_with(charm=harness.charm)
 
 
 def test_not_leader(
