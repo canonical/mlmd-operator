@@ -9,11 +9,17 @@ from pathlib import Path
 import pytest
 import tenacity
 import yaml
+from charmed_kubeflow_chisme.testing import (
+    GRAFANA_AGENT_APP,
+    assert_logging,
+    deploy_and_assert_grafana_agent,
+)
 from pytest_operator.plugin import OpsTest
 
 log = logging.getLogger(__name__)
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+APP_NAME = METADATA["name"]
 
 
 @pytest.mark.abort_on_fail
@@ -30,6 +36,17 @@ async def test_build_and_deploy(ops_test: OpsTest):
         trust=True,
     )
     await ops_test.model.wait_for_idle(timeout=60 * 60)
+
+    # Deploying grafana-agent-k8s and add all relations
+    await deploy_and_assert_grafana_agent(
+        ops_test.model, APP_NAME, metrics=False, dashboard=False, logging=True
+    )
+
+
+async def test_logging(ops_test: OpsTest):
+    """Test logging is defined in relation data bag."""
+    app = ops_test.model.applications[GRAFANA_AGENT_APP]
+    await assert_logging(app)
 
 
 @tenacity.retry(

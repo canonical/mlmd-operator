@@ -5,3 +5,4 @@ juju<4.0
 pytest-operator
 requests
 tenacity
+charmed-kubeflow-chisme

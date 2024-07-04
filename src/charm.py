@@ -12,6 +12,7 @@ from charmed_kubeflow_chisme.components import (
 )
 from charmed_kubeflow_chisme.components.kubernetes_component import KubernetesComponent
 from charmed_kubeflow_chisme.kubernetes import create_charm_default_labels
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube.models.core_v1 import ServicePort
@@ -97,6 +98,7 @@ class Operator(CharmBase):
             port=self._svc_grpc_port,
             refresh_event=self.on.config_changed,
         )
+        self._logging = LogForwarder(charm=self)
 
 
 if __name__ == "__main__":
