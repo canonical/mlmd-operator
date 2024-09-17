@@ -21,10 +21,9 @@ variable "model_name" {
   type        = string
 }
 
-# TODO: Update to a map of strings, once juju provider 0.14 is released
 variable "resources" {
   description = "Map of resources revisions"
-  type        = map(number)
+  type        = map(string)
   default     = null
 }
 
