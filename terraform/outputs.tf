@@ -4,12 +4,12 @@ output "app_name" {
 
 output "provides" {
   value = {
-    grpc  = "grpc",
+    grpc = "grpc",
   }
 }
 
 output "requires" {
   value = {
-    logging        = "logging"
+    logging = "logging"
   }
 }
