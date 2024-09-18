@@ -5,6 +5,9 @@ This is a Terraform module facilitating the deployment of the mlmd charm, using 
 ## Requirements
 This module requires a `juju` model to be available. Refer to the [usage section](#usage) below for more details.
 
+## Compatibility
+This terraform module is compatible with charms of version >= ckf-1.9 due to changes in the charm's relations.
+
 ## API
 
 ### Inputs
