@@ -11,6 +11,6 @@ resource "juju_application" "mlmd" {
   storage_directives = {
     mlmd-data = "10G"
   }
-  trust     = true
-  units     = 1
+  trust = true
+  units = 1
 }
