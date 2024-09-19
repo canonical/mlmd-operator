@@ -32,3 +32,11 @@ variable "revision" {
   type        = number
   default     = null
 }
+
+variable "storage_directives" {
+  description = "Charm storage"
+  type = map(string)
+  default = {
+	mlmd-data = "10G"
+  }
+}

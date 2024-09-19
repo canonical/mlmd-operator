@@ -8,9 +8,7 @@ resource "juju_application" "mlmd" {
   model     = var.model_name
   name      = var.app_name
   resources = var.resources
-  storage_directives = {
-    mlmd-data = "10G"
-  }
+  storage_directives = var.storage_directives
   trust = true
   units = 1
 }
