@@ -17,7 +17,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: /ml-metadata:1.14.0-2a80c7b
+    upstream-source: charmedkubeflow/ml-metadata:1.14.0-2a80c7b
 provides:
   grpc:
     interface: k8s-service
