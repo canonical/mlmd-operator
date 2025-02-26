@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import sh
 import tenacity
 import yaml
 from charmed_kubeflow_chisme.testing import (
@@ -47,6 +48,24 @@ async def test_logging(ops_test: OpsTest):
     """Test logging is defined in relation data bag."""
     app = ops_test.model.applications[GRAFANA_AGENT_APP]
     await assert_logging(app)
+
+
+async def test_storage_ownership(ops_test: OpsTest):
+    """Test that the user running the Pebble service owns the mounted storage."""
+
+    # Get the user name set in the pebble plan
+    pebble_plan = sh.juju.ssh(
+        "--container", "mlmd-grpc-server", "mlmd/leader", "/charm/bin/pebble", "plan"
+    )
+    user_from_pebble_plan = yaml.safe_load(pebble_plan)["services"]["mlmd"]["user"]
+
+    # Get the username of the owner of /data
+    owner = yaml.safe_load(
+        sh.juju.ssh("--container", "mlmd-grpc-server", "mlmd/leader", "stat", "-c", "%U", "/data")
+    )
+
+    # Assert they are the same
+    assert user_from_pebble_plan == owner
 
 
 @tenacity.retry(

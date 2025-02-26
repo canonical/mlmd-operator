@@ -101,6 +101,7 @@ def test_pebble_service_container_running(harness, mocked_lightkube_client):
     harness.set_can_connect(CONTAINER_NAME, True)
 
     harness.charm.kubernetes_resources.get_status = MagicMock(return_value=ActiveStatus())
+    harness.charm.chown_component.get_status = MagicMock(return_value=ActiveStatus())
 
     harness.charm.on.install.emit()
 
@@ -117,6 +118,7 @@ def test_install_before_pebble_service_container(harness, mocked_lightkube_clien
     harness.begin()
 
     harness.charm.kubernetes_resources.get_status = MagicMock(return_value=ActiveStatus())
+    harness.charm.chown_component.get_status = MagicMock(return_value=ActiveStatus())
 
     harness.charm.on.install.emit()
 
