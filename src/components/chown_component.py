@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import logging
-from typing import Optional
 
 from charmed_kubeflow_chisme.components.component import Component
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
@@ -20,23 +19,26 @@ class ChownMountedStorageComponent(Component):
         name(str): name of the component
         storage_path(str): the path where the storage is mounted and is desired to change owners.
         workload_user(str): the user that runs the service (workload).
+        workload_container(str): the name of the workload container where the changes must be done.
     """
 
     def __init__(
         self,
         charm: CharmBase,
         name: str,
-        storage_path: Optional[str] = "/data",
-        workload_user: Optional[str] = "_daemon_",
+        storage_path: str,
+        workload_user: str,
+        workload_container: str,
     ):
         super().__init__(charm, name)
 
         self.storage_path = storage_path
         self.workload_user = workload_user
+        self.workload_container = workload_container
         self.charm = charm
 
     def chown_storage_path(self, storage_path, workload_user) -> None:
-        container = self.charm.unit.get_container("mlmd-grpc-server")
+        container = self.charm.unit.get_container(self.workload_container)
         if not container.can_connect():
             raise ErrorWithStatus("Cannot connect to container mlmd-grpc-server", WaitingStatus)
         container.exec(["chown", f"{workload_user}:{workload_user}", f"{storage_path}"]).wait()

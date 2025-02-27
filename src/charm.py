@@ -75,7 +75,13 @@ class Operator(CharmBase):
         # NOTE: if an oci-image other than the mlmd rock is to be used,
         # please make sure the user that runs the process and owns /data is updated
         self.chown_component = self.charm_reconciler.add(
-            component=ChownMountedStorageComponent(charm=self, name="chown-storage"),
+            component=ChownMountedStorageComponent(
+                charm=self,
+                name="chown-storage",
+                storage_path="/data",
+                workload_user="_daemon_",
+                workload_container="mlmd-grpc-server",
+            ),
             depends_on=[self.leadership_gate],
         )
 
