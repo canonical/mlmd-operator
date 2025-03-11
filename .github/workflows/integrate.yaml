@@ -17,25 +17,30 @@ jobs:
           
   lint:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Check out code
       uses: actions/checkout@v4
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v5.3.0
+      with:
+        python-version: 3.8
     - name: Install dependencies
-      run: |
-        set -eux
-        sudo apt update
-        sudo apt install tox
+      run: pip install tox
     - name: Lint code
       run: tox -vve lint
 
   unit:
     name: Unit Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
       - name: Install dependencies
         run: pip install tox
       - name: Run unit tests
@@ -49,10 +54,16 @@ jobs:
         
   integration:
     name: Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Check out code
       uses: actions/checkout@v4
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v5.3.0
+      with:
+        python-version: 3.8
+
     - name: Setup operator environment
       uses: charmed-kubernetes/actions-operator@main
       with:
