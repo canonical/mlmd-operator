@@ -17,8 +17,8 @@ from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube.models.core_v1 import ServicePort
 from lightkube.resources.core_v1 import Service
+from ops import main
 from ops.charm import CharmBase
-from ops.main import main
 
 from components.chown_component import ChownMountedStorageComponent
 from components.pebble_components import MlmdPebbleService
