@@ -15,6 +15,7 @@ from charmed_kubeflow_chisme.kubernetes import create_charm_default_labels
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from charms.velero_libs.v0.velero_backup_config import VeleroBackupRequirer, VeleroBackupSpec
 from lightkube.models.core_v1 import ServicePort
 from lightkube.resources.core_v1 import Service
 from ops import main
@@ -114,6 +115,20 @@ class Operator(CharmBase):
             name=GRPC_SVC_NAME,
             port=self._svc_grpc_port,
             refresh_event=self.on.config_changed,
+        )
+
+        # configure the Velero backup relation
+        self.velero_backup_config = VeleroBackupRequirer(
+            charm=self,
+            app_name=self.app.name,
+            relation_name="velero-backup-config",
+            spec=VeleroBackupSpec(
+                include_namespaces=[self.model.name],
+                include_resources=["persistentvolumeclaims"],
+                label_selector={
+                    "app.kubernetes.io/name": self.app.name,
+                },
+            ),
         )
         self._logging = LogForwarder(charm=self)
 
