@@ -21,12 +21,12 @@ resources:
 provides:
   grpc:
     interface: k8s-service
+  velero-backup-config:
+    interface: velero_backup_config
 requires:
   logging:
     interface: loki_push_api
     optional: true
-  velero-backup-config:
-    interface: velero_backup_config
 storage:
   mlmd-data:
     type: filesystem
