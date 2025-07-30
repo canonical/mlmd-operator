@@ -104,6 +104,19 @@ class Operator(CharmBase):
             depends_on=[self.leadership_gate, self.chown_component],
         )
 
+        self.charm_reconciler.install_default_event_handlers()
+        grpc_port = ServicePort(int(self._svc_grpc_port), name="grpc-api")
+        self.service_patcher = KubernetesServicePatch(self, [grpc_port])
+
+        # KubernetesServiceInfoProvider for broadcasting the GRPC service information
+        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
+            charm=self,
+            relation_name=RELATION_NAME,
+            name=GRPC_SVC_NAME,
+            port=self._svc_grpc_port,
+            refresh_event=self.on.config_changed,
+        )
+
         # configure the Velero backup relation
         self.velero_backup_config = VeleroBackupProvider(
             charm=self,
@@ -117,19 +130,6 @@ class Operator(CharmBase):
                     "app.kubernetes.io/name": self.app.name,
                 },
             ),
-        )
-
-        self.charm_reconciler.install_default_event_handlers()
-        grpc_port = ServicePort(int(self._svc_grpc_port), name="grpc-api")
-        self.service_patcher = KubernetesServicePatch(self, [grpc_port])
-
-        # KubernetesServiceInfoProvider for broadcasting the GRPC service information
-        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
-            charm=self,
-            relation_name=RELATION_NAME,
-            name=GRPC_SVC_NAME,
-            port=self._svc_grpc_port,
-            refresh_event=self.on.config_changed,
         )
 
         self._logging = LogForwarder(charm=self)
