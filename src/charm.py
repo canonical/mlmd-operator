@@ -125,7 +125,7 @@ class Operator(CharmBase):
             model=self.model.name,
             spec=VeleroBackupSpec(
                 include_namespaces=[self.model.name],
-                include_resources=["persistentvolumeclaims"],
+                include_resources=["persistentvolumeclaims", "persistentvolumes"],
                 label_selector={
                     "app.kubernetes.io/name": self.app.name,
                 },
