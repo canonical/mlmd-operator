@@ -120,9 +120,7 @@ class Operator(CharmBase):
         # configure the Velero backup relation
         self.velero_backup_config = VeleroBackupProvider(
             charm=self,
-            app_name=self.app.name,
             relation_name="velero-backup-config",
-            model=self.model.name,
             spec=VeleroBackupSpec(
                 include_namespaces=[self.model.name],
                 include_resources=["persistentvolumeclaims", "persistentvolumes"],
