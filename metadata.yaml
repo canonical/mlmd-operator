@@ -10,14 +10,14 @@ containers:
   mlmd-grpc-server:
     resource: oci-image
     mounts:
-      - storage: mlmd-data
-        location: /data
+    - storage: mlmd-data
+      location: /data
 resources:
   oci-image:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: charmedkubeflow/ml-metadata:1.14.0-2a80c7b
+    upstream-source: docker.io/charmedkubeflow/ml-metadata:1.14.0-a25d7e2
 provides:
   grpc:
     interface: k8s-service
