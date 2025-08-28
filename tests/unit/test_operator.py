@@ -11,6 +11,7 @@ from charm import GRPC_SVC_NAME, RELATION_NAME, Operator
 
 CONTAINER_NAME = "mlmd-grpc-server"
 SERVICE_NAME = "mlmd"
+MODEL_NAME = "mlmd-test"
 
 
 def test_log_forwarding(harness, mocked_lightkube_client):
@@ -130,7 +131,10 @@ def test_install_before_pebble_service_container(harness, mocked_lightkube_clien
 
 @pytest.fixture()
 def harness(mocked_kubernetes_service_patch):
-    return Harness(Operator)
+    harness = Harness(Operator)
+    harness.set_model_name(MODEL_NAME)
+    yield harness
+    harness.cleanup()
 
 
 @pytest.fixture()
