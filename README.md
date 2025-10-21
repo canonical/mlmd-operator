@@ -26,36 +26,92 @@ juju refresh mlmd --channel <desired-channel>
 
 #### Upgrading from `mlmd<=1.14/stable`
 
-> WARNING: to correctly perform this migration, you must [backup your data](https://charmed-kubeflow.io/docs/backup#heading--backup-mlmd-sqlite) first.
+> WARNING: you need to backup the data from 1.14 and restore them. Otherwise there will be data loss!
 
-1. Remove the relation with requirer charms (e.g. `envoy` and `kfp-metadata-writer`)
+**1. Remove the relation with requirer charms (e.g. `envoy` and `kfp-metadata-writer`)**
 
 ```
 juju remove-relation envoy mlmd
 juju remove-relation kfp-metadata-writer mlmd
 ```
 
-2. Remove the `mlmd` application.
+**2. Backup MLMD with `kubectl`**
 
-> WARNING: this will wipe out the storage attached to the `mlmd` charm, therefore, the database
-that this charm handles. It is important you perform a [data backup](https://charmed-kubeflow.io/docs/backup#heading--backup-mlmd-sqlite) before
-running this step.
+First scale down the `kfp-metadata-writer`, which could write data to MLMD.
+```bash
+juju scale-application kfp-metadata-writer 0
+```
+
+Create a backup of the SQLite DB
+```bash
+MLMD_POD="mlmd-0"
+MLMD_CONTAINER="mlmd"
+MLMD_BACKUP=mlmd-$(date -d "today" +"%Y-%m-%d-%H-%M").dump.gz
+
+# install sqlite sdk
+kubectl exec -n kubeflow $MLMD_POD -c $MLMD_CONTAINER -- \
+    /bin/bash -c "apt update && apt install sqlite3 -y"
+
+# create database dump
+kubectl exec -n kubeflow $MLMD_POD -c $MLMD_CONTAINER -- \
+    /bin/bash -c \
+    "sqlite3 /data/mlmd.db .dump | gzip -c >/tmp/$MLMD_BACKUP"
+```
+
+**3. Copy the backup data locally**
+```bash
+kubectl cp -n kubeflow -c $MLMD_CONTAINER \
+    $MLMD_POD:/tmp/$MLMD_BACKUP \
+    ./$MLMD_BACKUP
+```
+
+**4. Remove the `mlmd` application.**
+
+> WARNING: This will delete the application and all data with it. Make sure you've followed
+> The above instructions correctly.
 
 ```
 juju remove-application mlmd --destroy-storage
 ```
 
-3. Deploy `mlmd` from a newer channel
+**5. Deploy `mlmd` from a newer channel**
 
 ```
-juju deploy mlmd --channel <channel-greater-than-1.14/stable> --trust
+juju deploy mlmd --channel ckf-1.9 --trust
 ```
 
-4. [Restore your data](https://charmed-kubeflow.io/docs/restore#heading--restore-mlmd-sqlite).
+**6. Restore backed up data**
 
-5. Relate to the requirer charms
+Restore the copied data and restart `kfp-metadata-writer`
+```bash
+# The new MLMD charm from ckf-1.9 channel and onwards is using a different container name
+MLMD_POD="mlmd-0"
+MLMD_CONTAINER="mlmd-grpc-server"
 
-> NOTE: `mlmd>1.14/stable` can only be related to `envoy>2.0/stable` and `kfp-metadata-writer>2.0/stable`
+# install the sqlite sdk
+kubectl exec -n kubeflow $MLMD_POD -c $MLMD_CONTAINER -- \
+    /bin/bash -c "apt update && apt install sqlite3 -y"
+
+# copy the dump file to the container
+kubectl cp -n kubeflow -c $MLMD_CONTAINER \
+    $MLMD_BACKUP \
+    $MLMD_POD:/tmp/$MLMD_BACKUP
+
+# move current database to tmp dir
+kubectl exec -n kubeflow $MLMD_POD -c $MLMD_CONTAINER -- \
+    /bin/bash -c "mv /data/mlmd.db /tmp/mlmd.current"
+
+# restore the database from dump file
+kubectl exec -n kubeflow $MLMD_POD -c $MLMD_CONTAINER -- \
+    /bin/bash -c "zcat /tmp/$MLMD_BACKUP | sqlite3 /data/mlmd.db"
+```
+
+And finally start again the `kfp-metadata-writer`
+```bash
+juju scale-application kfp-metadata-writer 1
+```
+
+**7. Relate to the requirer charms**
 
 ```
 juju relate envoy mlmd
