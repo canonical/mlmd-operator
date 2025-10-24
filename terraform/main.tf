@@ -1,6 +1,7 @@
 resource "juju_application" "mlmd" {
   charm {
     name     = "mlmd"
+    base     = var.base
     channel  = var.channel
     revision = var.revision
   }
