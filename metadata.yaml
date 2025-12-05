@@ -9,6 +9,8 @@ description: |
 containers:
   mlmd-grpc-server:
     resource: oci-image
+    uid: 584792
+    gid: 584792
     mounts:
       - storage: mlmd-data
         location: /data
@@ -31,3 +33,4 @@ storage:
   mlmd-data:
     type: filesystem
     minimum-size: 10G
+charm-user: non-root
