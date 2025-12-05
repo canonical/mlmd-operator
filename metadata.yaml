@@ -14,6 +14,8 @@ containers:
     mounts:
       - storage: mlmd-data
         location: /data
+      - storage: config
+        location: /config
 resources:
   oci-image:
     type: oci-image
@@ -33,4 +35,7 @@ storage:
   mlmd-data:
     type: filesystem
     minimum-size: 10G
+  config:
+    type: filesystem
+    minimum-size: 1M
 charm-user: non-root
