@@ -21,7 +21,6 @@ from lightkube.resources.core_v1 import Service
 from ops import main
 from ops.charm import CharmBase
 
-from components.chown_component import ChownMountedStorageComponent
 from components.pebble_components import MlmdPebbleService
 
 logger = logging.getLogger()
@@ -70,22 +69,6 @@ class Operator(CharmBase):
             depends_on=[self.leadership_gate],
         )
 
-        # The chown_component ensures the /data directory belongs to
-        # the _daemon_ user and group set in the mlmd rock
-        # This is added because of https://github.com/juju/juju/issues/19020
-        # NOTE: if an oci-image other than the mlmd rock is to be used,
-        # please make sure the user that runs the process and owns /data is updated
-        self.chown_component = self.charm_reconciler.add(
-            component=ChownMountedStorageComponent(
-                charm=self,
-                name="chown-storage",
-                storage_path="/data",
-                workload_user="_daemon_",
-                workload_container="mlmd-grpc-server",
-            ),
-            depends_on=[self.leadership_gate],
-        )
-
         self.mlmd_container = self.charm_reconciler.add(
             component=MlmdPebbleService(
                 charm=self,
@@ -101,7 +84,7 @@ class Operator(CharmBase):
                     )
                 ],
             ),
-            depends_on=[self.leadership_gate, self.chown_component],
+            depends_on=[self.leadership_gate],
         )
 
         self.charm_reconciler.install_default_event_handlers()
