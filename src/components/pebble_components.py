@@ -32,7 +32,6 @@ class MlmdPebbleService(PebbleServiceComponent):
                         "summary": "entry point for MLMD GRPC Service",
                         "command": command,  # Must be a string
                         "startup": "enabled",
-                        "user": "_daemon_",
                     }
                 },
             }
