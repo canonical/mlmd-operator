@@ -9,9 +9,13 @@ description: |
 containers:
   mlmd-grpc-server:
     resource: oci-image
+    uid: 584792
+    gid: 584792
     mounts:
       - storage: mlmd-data
         location: /data
+      - storage: config
+        location: /config
 resources:
   oci-image:
     type: oci-image
@@ -21,6 +25,8 @@ resources:
 provides:
   grpc:
     interface: k8s-service
+  velero-backup-config:
+    interface: velero_backup_config
 requires:
   logging:
     interface: loki_push_api
@@ -29,3 +35,7 @@ storage:
   mlmd-data:
     type: filesystem
     minimum-size: 10G
+  config:
+    type: filesystem
+    minimum-size: 1M
+charm-user: non-root
