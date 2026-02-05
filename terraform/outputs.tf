@@ -4,7 +4,8 @@ output "app_name" {
 
 output "provides" {
   value = {
-    grpc = "grpc",
+    grpc                 = "grpc",
+    velero_backup_config = "velero-backup-config"
   }
 }
 
