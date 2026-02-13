@@ -33,7 +33,7 @@ jobs:
 
   terraform-checks:
     name: Terraform
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@kf-8450-fix-tf-apply
     with:
       charm-path: .
         
