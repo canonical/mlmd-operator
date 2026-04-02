@@ -23,7 +23,9 @@ class MlmdPebbleService(PebbleServiceComponent):
             f" --metadata_store_server_config_file={self._metadata_store_server_config_file}"
             f" --grpc_port={self._grpc_port}"
             " --enable_database_upgrade=true"
-            " --grpc_channel_arguments=grpc.max_metadata_size=16384,grpc.max_receive_message_length=104857600,grpc.max_send_message_length=104857600"
+            " --grpc_channel_arguments=grpc.max_metadata_size=16384,"
+            "grpc.max_receive_message_length=104857600,"
+            "grpc.max_send_message_length=104857600"
         )
         layer = Layer(
             {
