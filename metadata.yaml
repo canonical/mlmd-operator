@@ -12,14 +12,14 @@ containers:
     uid: 584792
     gid: 584792
     mounts:
-      - storage: mlmd-data
-        location: /data
+    - storage: mlmd-data
+      location: /data
 resources:
   oci-image:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: docker.io/charmedkubeflow/ml-metadata:1.17.1-c330e72
+    upstream-source: docker.io/dariofaccin/ml-metadata:1.17.1-f2a395e-20260609112557
 provides:
   grpc:
     interface: k8s-service
